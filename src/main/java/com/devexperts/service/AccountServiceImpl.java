@@ -9,6 +9,8 @@ import com.devexperts.exceptions.NotEnoughBalanceException;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -50,8 +52,9 @@ public class AccountServiceImpl implements AccountService {
         final Account targetAccount = Optional.of(getAccount(target.getAccountKey().getAccountId()))
                 .orElseThrow(AccountNotFoundException::new);
 
+        System.out.println("from: " + source.getValidBalance() + " to:" + target.getValidBalance());
         transferMoney(sourceAccount, targetAccount, amount);
-
+        System.out.println("acc: " + source.getValidBalance() + " to:" + target.getValidBalance());
     }
 
     private void validateTransfer(Account source, Account target, double amount) {
@@ -99,12 +102,21 @@ public class AccountServiceImpl implements AccountService {
             throw new NotEnoughBalanceException();
         }
 
-        final double futureBalance = source.getValidBalance() - amount; //todo maybe Math?
-        if (futureBalance < 0) {
+        final BigDecimal from = new BigDecimal(source.getValidBalance());
+        final BigDecimal to = new BigDecimal(target.getValidBalance());
+
+        final BigDecimal futureSourceBalance = from
+                .subtract(new BigDecimal(amount))
+                .setScale(2, RoundingMode.HALF_EVEN);
+        final BigDecimal futureTargetBalance = new BigDecimal(target.getValidBalance())
+                .add(new BigDecimal(amount))
+                .setScale(2, RoundingMode.HALF_EVEN);
+
+        if (futureSourceBalance.doubleValue() < 0) {
             throw new NotEnoughBalanceException();
         }
 
-        source.setBalance(futureBalance);
-        target.setBalance(target.getValidBalance() + amount);
+        source.setBalance(futureSourceBalance.doubleValue());
+        target.setBalance(futureTargetBalance.doubleValue());
     }
 }
