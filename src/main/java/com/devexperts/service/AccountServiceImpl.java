@@ -22,12 +22,9 @@ public class AccountServiceImpl implements AccountService {
     @Override
     public void createAccount(Account account) {
         Assert.notNull(account);
-        Assert.notNull(account.getAccountKey());
+        Assert.notNull(account.getAccountKey()); //if accountId could be changed after, It would be better to generate new one
 
-        final boolean contains = accounts.containsKey(account.getAccountKey());
-        if (contains) {
-            throw new AccountAlreadyExistsException();
-        }
+        checkIfAccountWithGivenAccountKeyDoesNotExists(account);
 
         accounts.put(account.getAccountKey(), account);
     }
@@ -41,5 +38,18 @@ public class AccountServiceImpl implements AccountService {
     @Override
     public void transfer(Account source, Account target, double amount) {
         //do nothing for now
+    }
+
+    /**
+     * Validate if account with given {@link AccountKey} already exists.
+     *
+     * @param account account
+     * @throws AccountAlreadyExistsException if account with given id already exists
+     */
+    private void checkIfAccountWithGivenAccountKeyDoesNotExists(Account account) {
+        final boolean contains = accounts.containsKey(account.getAccountKey());
+        if (contains) {
+            throw new AccountAlreadyExistsException();
+        }
     }
 }
