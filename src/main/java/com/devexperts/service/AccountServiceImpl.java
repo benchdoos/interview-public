@@ -5,7 +5,9 @@ import com.devexperts.account.AccountKey;
 import com.devexperts.annotations.validators.BalanceValidator;
 import com.devexperts.exceptions.AccountAlreadyExistsException;
 import com.devexperts.exceptions.AccountNotFoundException;
+import com.devexperts.exceptions.MoneyTransferException;
 import com.devexperts.exceptions.NotEnoughBalanceException;
+import com.devexperts.exceptions.SameMoneyTransferAccountException;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
 
@@ -91,11 +93,11 @@ public class AccountServiceImpl implements AccountService {
      * @param source from
      * @param target to
      * @param amount positive number of money to transfer
-     * @throws NotEnoughBalanceException if source account will have negative balance
+     * @throws MoneyTransferException if money transfer is invalid for some reason
      */
     private void transferMoney(Account source, Account target, double amount) {
         if (source.getAccountKey().equals(target.getAccountKey())) {
-            throw new IllegalArgumentException("Money can not be transferred from - to same account");
+            throw new SameMoneyTransferAccountException();
         }
 
         if (source.getValidBalance() < 0) {
