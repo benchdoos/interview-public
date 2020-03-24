@@ -6,6 +6,9 @@ import javax.validation.ConstraintValidator;
 import javax.validation.ConstraintValidatorContext;
 import java.math.BigDecimal;
 
+/**
+ * Validator, that provides validation for account balance
+ */
 public class BalanceValidator implements ConstraintValidator<ValidBalance, Double> {
     @Override
     public void initialize(ValidBalance constraintAnnotation) {
