@@ -2,7 +2,9 @@ package com.devexperts.account;
 
 import lombok.AccessLevel;
 import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.ToString;
 
 /**
  * Unique Account identifier
@@ -16,6 +18,8 @@ import lombok.RequiredArgsConstructor;
  * */
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
+@Getter
+@ToString
 public class AccountKey {
 
     @EqualsAndHashCode.Include

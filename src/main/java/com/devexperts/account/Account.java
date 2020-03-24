@@ -1,9 +1,12 @@
 package com.devexperts.account;
 
+import com.devexperts.annotations.ValidBalance;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
+
+import java.math.BigDecimal;
 
 @AllArgsConstructor
 @RequiredArgsConstructor
@@ -17,5 +20,13 @@ public class Account {
 
     private final String lastName;
 
+    /**
+     * todo: better use {@link BigDecimal}. Using {@link Double} is not save
+     */
+    @ValidBalance
     private Double balance;
+
+    public double getValidBalance() {
+        return this.balance == null ? 0.0 : this.balance;
+    }
 }
