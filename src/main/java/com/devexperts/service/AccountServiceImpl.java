@@ -8,6 +8,7 @@ import com.devexperts.exceptions.AccountNotFoundException;
 import com.devexperts.exceptions.MoneyTransferException;
 import com.devexperts.exceptions.NotEnoughBalanceException;
 import com.devexperts.exceptions.SameMoneyTransferAccountException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
 
@@ -17,6 +18,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+@Slf4j
 @Service
 public class AccountServiceImpl implements AccountService {
 
@@ -24,11 +26,14 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public void clear() {
+        log.info("Cleaning accounts storage.");
         accounts.clear();
+        log.info("Accounts storage successfully cleaned up.");
     }
 
     @Override
     public void createAccount(Account account) {
+        log.debug("Creating new account: {}", account);
         Assert.notNull(account, "Account must not be null");
         //if accountId could be changed after, It would be better to generate new one
         Assert.notNull(account.getAccountKey(), "Account key must be not null");
@@ -36,6 +41,7 @@ public class AccountServiceImpl implements AccountService {
         checkIfAccountWithGivenAccountKeyDoesNotExists(account);
 
         accounts.put(account.getAccountKey(), account);
+        log.info("Account with id: {} successfully created.", account.getAccountKey());
     }
 
     @Override
@@ -54,18 +60,35 @@ public class AccountServiceImpl implements AccountService {
         final Account targetAccount = Optional.of(getAccount(target.getAccountKey().getAccountId()))
                 .orElseThrow(AccountNotFoundException::new);
 
-        System.out.println("from: " + source.getValidBalance() + " to:" + target.getValidBalance());
+        log.debug("Transferring money from: {} (balance: {}) to {} (balance:{}).",
+                sourceAccount.getAccountKey(),
+                sourceAccount.getValidBalance(),
+                targetAccount.getAccountKey(),
+                targetAccount.getValidBalance());
+
         transferMoney(sourceAccount, targetAccount, amount);
-        System.out.println("acc: " + source.getValidBalance() + " to:" + target.getValidBalance());
+
+        log.info("Money transfer successfully finished. From: {} (balance: {}) to {} (balance:{}).",
+                sourceAccount.getAccountKey(),
+                sourceAccount.getValidBalance(),
+                targetAccount.getAccountKey(),
+                targetAccount.getValidBalance());
     }
 
+    /**
+     * Validate money transfer between 2 accounts
+     *
+     * @param source account that send money
+     * @param target account that receive money
+     * @param amount positive number of money to transfer
+     */
     private void validateTransfer(Account source, Account target, double amount) {
         Assert.notNull(source, "Source account must not be null");
         Assert.notNull(source.getAccountKey(), "Source account key must be not null");
         Assert.notNull(target, "Target account must not be null");
         Assert.notNull(target.getAccountKey(), "Target account key must be not null");
-        Assert.isTrue(Double.isFinite(amount), "Amount must be a correct number");
-        Assert.isTrue(amount > 0, "Amount must be bigger then 0");
+        Assert.isTrue(Double.isFinite(amount), "Amount must be a correct number. +/-Infinity, NAN are not valid.");
+        Assert.isTrue(amount > 0, "Amount must be positive and bigger then 0");
 
         //not the best solution
         final BalanceValidator balanceValidator = new BalanceValidator();
@@ -83,6 +106,7 @@ public class AccountServiceImpl implements AccountService {
     private void checkIfAccountWithGivenAccountKeyDoesNotExists(Account account) {
         final boolean contains = accounts.containsKey(account.getAccountKey());
         if (contains) {
+            log.warn("Account with given id already exists: {}", account.getAccountKey());
             throw new AccountAlreadyExistsException();
         }
     }
@@ -90,8 +114,8 @@ public class AccountServiceImpl implements AccountService {
     /**
      * Perform money transfer between accounts.
      *
-     * @param source from
-     * @param target to
+     * @param source account that send money
+     * @param target account that receive money
      * @param amount positive number of money to transfer
      * @throws MoneyTransferException if money transfer is invalid for some reason
      */
@@ -104,13 +128,13 @@ public class AccountServiceImpl implements AccountService {
             throw new NotEnoughBalanceException();
         }
 
-        final BigDecimal from = new BigDecimal(source.getValidBalance());
-        final BigDecimal to = new BigDecimal(target.getValidBalance());
+        final BigDecimal fromBalance = new BigDecimal(source.getValidBalance());
+        final BigDecimal toBalance = new BigDecimal(target.getValidBalance());
 
-        final BigDecimal futureSourceBalance = from
+        final BigDecimal futureSourceBalance = fromBalance
                 .subtract(new BigDecimal(amount))
                 .setScale(2, RoundingMode.HALF_EVEN);
-        final BigDecimal futureTargetBalance = new BigDecimal(target.getValidBalance())
+        final BigDecimal futureTargetBalance = toBalance
                 .add(new BigDecimal(amount))
                 .setScale(2, RoundingMode.HALF_EVEN);
 
